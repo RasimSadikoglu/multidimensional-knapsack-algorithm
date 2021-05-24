@@ -8,7 +8,7 @@ using std::vector;
 using std::map;
 
 void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits);
-int knapsack_helper(const vector<vector<int>> &items, map<vector<int>, int> &table, vector<int> weights, int item);
+int knapsack_helper(const vector<vector<int>> &items, map<vector<int>, int> &table, const vector<int> weights);
 
 int main(int argc, char **argv) {
 
@@ -56,34 +56,41 @@ void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits)
 
     vector<int> weights(limits);
 
-    weights.erase(weights.begin());
+    weights.push_back(items.size() - 1);
 
-    int result = knapsack_helper(items, table, weights, items.size() - 1);
+    vector<int> res_items;
+    int result = knapsack_helper(items, table, weights);
 
     std::cout << result << std::endl;
 
     return;
 }
 
-int knapsack_helper(const vector<vector<int>> &items, map<vector<int>, int> &table, vector<int> weights, int item) {
+int knapsack_helper(const vector<vector<int>> &items, map<vector<int>, int> &table, const vector<int> weights) {
 
-    if (item == 0) return 0;
+    if (weights.back() == -1) return 0;
 
-    if (table[weights] != 0) return table[weights];
+    if (table[weights] != 0) return table[weights] == -1 ? 0 : table[weights];
 
-    int p1 = knapsack_helper(items, table, weights, item - 1);
+    vector<int> cweights(weights);
+    cweights[cweights.size() - 1]--;
+    int p1 = knapsack_helper(items, table, cweights);
 
-    for (size_t i = 0; i < weights.size(); i++) {
-        if (weights[i] - items[item][i + 1] < 0) {
-            table[weights] = p1;
-            return table[weights];
+    for (size_t i = 0; i < cweights.size() - 1; i++) {
+        if (cweights[i] - items[weights.back()][i + 1] < 0) {
+            if (p1 == 0) table[weights] = -1;
+            else table[weights] = p1;
+            return p1;
         }
-        weights[i] -= items[item][i + 1];
+        cweights[i] -= items[weights.back()][i + 1];
     }
 
-    int p2 = knapsack_helper(items, table, weights, item - 1) + items[item][0];
+    int p2 = knapsack_helper(items, table, cweights) + items[weights.back()][0];
 
-    table[weights] = p1 > p2 ? p1 : p2;
+    if (p2 >= p1) table[weights] = p2;
+    else table[weights] = p1;
+
+    if (table[weights] == 0) table[weights] = -1;
 
     return table[weights];
 }
