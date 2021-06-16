@@ -1,9 +1,3 @@
-/*
-Bekir Nazmi Görkem 150118017
-Burak Çağlayan 150118027
-Rasim Sadıkoğlu 150118009
-*/
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -148,7 +142,8 @@ int knapsack_dfs_mirror(vector<vector<int>> items, const vector<int> &limits, bo
 
     // Main loop for dfs.
     while (si < items_size && !terminate) {
-
+        
+        // Print stack for debug.
         /*for (int i = 0; i < items_size; i++) std::cout << stack[i];
         std::cout << "\n";*/
 
@@ -339,7 +334,7 @@ void greedy_sort(vector<vector<int>> &items, const vector<int> &limits) {
     return max_value;
 }
 
-// Function for sort the vector.
+// Function for sorting the vector.
 bool sortf(vector<int> v1, vector<int> v2) {
     return v1[v1.size() - 2] < v2[v2.size() - 2];
 }
