@@ -17,10 +17,9 @@ Rasim Sadıkoğlu 150118009
 using std::vector;
 using std::map;
 
-void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits);
-int knapsack_dp(const vector<vector<int>> &items, map<vector<int>, int> &table, vector<int> &weights);
-int knapsack_dpi(const vector<vector<int>> &items, map<vector<int>, int> &table, vector<int> weights);
-int knapsack_dfs(vector<vector<int>> items, const vector<int> &limits, bool max_stack[]);
+void knapsack_solve(vector<vector<int>> items, const vector<int> &limits, std::string file_name);
+int knapsack_dfs_mirror(vector<vector<int>> items, const vector<int> &limits, bool max_stack[]);
+void greedy_sort(vector<vector<int>> &items, const vector<int> &limits);
 bool sortf(vector<int> v1, vector<int> v2);
 void handler(int num);
 void print_console(int stage, int max, int max_stage);
@@ -93,11 +92,14 @@ int main(int argc, char **argv) {
 }
 
 // Helper function for the real algorithm.
-void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits) {
+void knapsack_solve(vector<vector<int>> items, const vector<int> &limits, std::string file_name) {
+
+    // Sort the array by their greediness score.
+    greedy_sort(items, limits);
 
     // Create a boolean array for result.
     bool max_stack[items.size()] {};
-    int result = knapsack_dfs(items, limits, max_stack);
+    int result = knapsack_dfs_mirror(items, limits, max_stack);
 
     // Print the results to the stdout.
     std::cout << result << std::endl;
@@ -105,7 +107,7 @@ void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits)
     std::cout << std::endl;
 
     // Create result file.
-    std::ofstream output("output.txt", std::ofstream::out);
+    std::ofstream output(file_name.substr(0, file_name.size() - 4) + "_output.txt", std::ofstream::out);
     output << result << std::endl;
     for (size_t i = 0; i < items.size(); i++) output << max_stack[i] << std::endl;
     output.close();
@@ -113,9 +115,119 @@ void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits)
     return;
 }
 
-int knapsack_dfs(vector<vector<int>> items, const vector<int> &limits, bool max_stack[]) {
+int knapsack_dfs_mirror(vector<vector<int>> items, const vector<int> &limits, bool max_stack[]) {
+    // Save items' and limits' size for easy access.
+    int limits_size = limits.size();
+    int items_size = items.size();
 
-    // Sort the array by items' greediness value.
+    // Current weights of the knapsacks.
+    int weights[limits_size] {};
+
+    // Maximum value has ever found while executing.
+    int max_value = 0;
+
+    // State of the items, true means contains, false means doesn't.
+    bool stack[items_size] {};
+    for (int i = 0; i < items_size; i++) stack[i] = 1;
+    int si = 0;
+
+    // No effect for the algorithm, only for the keeping track the stage.
+    int si_max = 0;
+
+    // Current knapsacks' value and previous value of the si.
+    int value = 0;
+    bool prev = 1;
+
+    // Add all the items into the knapsacks.
+    for (int i = 0; i < items_size; i++) {
+        value += items[i][0];
+        for (int j = 0; j < limits_size; j++) {
+            weights[j] += items[i][j + 1];
+        }
+    }
+
+    // Main loop for dfs.
+    while (si < items_size && !terminate) {
+
+        /*for (int i = 0; i < items_size; i++) std::cout << stack[i];
+        std::cout << "\n";*/
+
+        // Current value of the stack that si pointing.
+        bool current = stack[si];
+
+        // If current is false add that item into the knapsack.
+        if (!current) {
+            value += items[si][0];
+            for (int i = 0; i < limits_size; i++) weights[i] += items[si][i + 1];
+
+            if (si > si_max) {
+                si_max = si;
+                print_console("Mirror DFS", si_max + 1, max_value, items_size);
+            }
+
+            prev = current;
+            stack[si] = 1;
+            si++;
+            continue;
+        }
+
+        // Create a temporary container for weights.
+        int tw[limits_size];
+        memcpy(tw, weights, sizeof(int) * limits_size);
+
+        // Check for that popping makes the knapsacks valid.
+        bool isfit = true;
+        for (int i = 0; i < limits_size; i++) {
+            tw[i] -= items[si][i + 1];
+            if (isfit) isfit = tw[i] <= limits[i];
+        }
+
+        // If knapsacks are valid, check for the maximum value.
+        if (isfit) {
+            stack[si] = 0;
+            value -= items[si][0];
+            if (value > max_value) {
+                max_value = value;
+                memcpy(max_stack, stack, items_size * sizeof(bool));
+                print_console("Mirror DFS", si_max + 1, max_value, items_size);
+            }
+            value += items[si][0];
+            stack[si] = 1;
+            if (prev) si = 0;
+            else si++;
+            prev = 0;
+            continue;
+        }
+        
+        // Delete that item from the knapsacks.
+        stack[si] = 0;
+
+        // Update weights and value according to changes have been made.
+        value -= items[si][0];
+        memcpy(weights, tw, sizeof(int) * limits_size);
+
+        // Update si.
+        if (!prev) si = 0;
+        else si++;
+
+        prev = current;
+    }
+
+    // Push result into the items container.
+    for (size_t i = 0; i < items.size(); i++) items[i].push_back(max_stack[i]);
+
+    // Sort the array in order to get initial order of the items.
+    std::sort(items.begin(), items.end(), sortf);
+    for (int i = 0; i < items_size; i++) max_stack[i] = items[i].back();
+
+    return max_value;
+}
+
+void greedy_sort(vector<vector<int>> &items, const vector<int> &limits) {
+    /*
+    GREEDY PART
+    */
+    // The program could be optimized using a better greedy algorithm.
     for (size_t i = 0; i < items.size(); i++) {
         float val = 0;
         for (size_t j = 0; j < limits.size(); j++) {
@@ -125,9 +237,11 @@ int knapsack_dfs(vector<vector<int>> items, const vector<int> &limits, bool max_
         val = items[i][0] / val;
         items[i].push_back(val);
     }
+    /*
+    GREEDY PART
+    */
 
-    // Add items' index for restoring original positions 
-    // in order to find which items are included in the solution.
+    // Sort the array after adding their initial indexes.
     for (size_t i = 0; i < items.size(); i++) items[i].push_back(i);
     std::sort(items.begin(), items.end(), sortf);
 
