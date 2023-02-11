@@ -1,7 +1,6 @@
 #include "greedy.h"
 #include "utility.h"
 
-#include <cstdlib>
 #include <algorithm>
 
 mknapsack::Greedy::Greedy(std::vector<std::vector<uint32_t>> &items, std::vector<uint32_t> &limits):

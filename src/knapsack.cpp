@@ -1,9 +1,6 @@
 #include "knapsack.h"
 
-#include <iostream>
-#include <fstream>
 #include <algorithm>
-#include <cstring>
 
 extern bool terminate;
 
@@ -52,8 +49,6 @@ int mknapsack::MKnapsack::knapsack_dfs_mirror() {
             weights[j] += items[i][j + 1];
         }
     }
-
-    std::cout << "\n\n\n\n";
 
     while (si < items_size && !terminate) {
         

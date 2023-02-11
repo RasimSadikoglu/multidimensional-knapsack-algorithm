@@ -11,8 +11,9 @@ mknapsack::Utility::Utility(const std::string file_name, std::vector<std::vector
 
 void mknapsack::Utility::print_console(uint32_t stage, uint32_t max, uint32_t max_stage)
 {
-
-    std::cout << "\033[4F" << "Mirror DFS" << "\n";
+    std::cout << "\033[u";
+    std::cout << "\033[0J";
+    std::cout << "Mirror DFS" << "\n";
     std::cout << "Current Stage: " << stage << "/" << max_stage << "\n";
     std::cout << "Current Maximum Value: " << max << "\n";
     std::cout << "Pressing CTRL+C will save current results." << "\n";

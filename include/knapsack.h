@@ -2,8 +2,6 @@
 
 #include <vector>
 #include <string>
-#include <bitset>
-#include <memory>
 
 #include "greedy.h"
 #include "utility.h"
