@@ -4,6 +4,9 @@
 #include <map>
 #include <chrono>
 #include <stack>
+#include <cstring>
+#include <algorithm>
+#include <signal.h>
 
 using std::vector;
 using std::map;
@@ -11,9 +14,16 @@ using std::map;
 void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits);
 int knapsack_dp(const vector<vector<int>> &items, map<vector<int>, int> &table, vector<int> &weights);
 int knapsack_dpi(const vector<vector<int>> &items, map<vector<int>, int> &table, vector<int> weights);
-int knapsack_backtracking(const vector<vector<int>> &items, const vector<int> &limits);
+int knapsack_dfs(vector<vector<int>> items, const vector<int> &limits, bool max_stack[]);
+bool sortf(vector<int> v1, vector<int> v2);
+void handler(int num);
+void print_console(int stage, int max, int max_stage);
+
+bool terminate = false;
 
 int main(int argc, char **argv) {
+
+    signal(SIGINT, handler);
 
     std::ifstream input;
     
@@ -71,10 +81,17 @@ void knapsack_solve(const vector<vector<int>> &items, const vector<int> &limits)
 
     weights.push_back(items.size() - 1);
 
-    vector<int> res_items;
-    int result = knapsack_backtracking(items, limits);
+    bool max_stack[items.size()] {};
+    int result = knapsack_dfs(items, limits, max_stack);
 
     std::cout << result << std::endl;
+    for (size_t i = 0; i < items.size(); i++) std::cout << max_stack[i];
+    std::cout << std::endl;
+
+    std::ofstream output("output.txt", std::ofstream::out);
+    output << result << std::endl;
+    for (size_t i = 0; i < items.size(); i++) output << max_stack[i] << std::endl;
+    output.close();
 
     return;
 }
@@ -167,52 +184,96 @@ int knapsack_dpi(const vector<vector<int>> &items, map<vector<int>, int> &table,
     return table[weights];
 }
 
-int knapsack_backtracking(const vector<vector<int>> &items, const vector<int> &limits) {
+int knapsack_dfs(vector<vector<int>> items, const vector<int> &limits, bool max_stack[]) {
 
-    std::vector<int> weights(limits.size());
+    for (size_t i = 0; i < items.size(); i++) items[i].push_back(i);
+    std::sort(items.begin(), items.end(), sortf);
+
+    int limits_size = limits.size();
+    int items_size = items.size();
+
+    int weights[limits_size] {};
+
     int max_value = 0;
-    std::stack<bool> max_stack;
 
-    std::stack<bool> s;
-    for (size_t i = 0; i < items.size(); i++) s.push(false);
-    max_stack = s;
+    bool stack[items_size] {};
+    int si = items_size - 1;
+
+    int si_min = si + 1;
 
     int value = 0;
-    while (!s.empty()) {
-        bool top = s.top();
+    while (si != -1 && !terminate) {
+
+        bool top = stack[si];
 
         if (top) {
-            value -= items[s.size() - 1][0];
-            for (size_t i = 0; i < weights.size(); i++) weights[i] -= items[s.size() - 1][i + 1];
-            s.pop();
+            value -= items[si][0];
+            for (int i = 0; i < limits_size; i++) weights[i] -= items[si][i + 1];
+            if (si < si_min) {
+                si_min = si;
+                print_console(si_min, max_value, items_size);
+            }
+            si--;
             continue;
         }
 
-        s.pop();
-        s.push(1);
+        stack[si] = 1;
 
-        vector<int> tw(weights);
+        int tw[limits_size];
+        memcpy(tw, weights, sizeof(int) * limits_size);
+        
         bool isfit = true;
-        for (size_t i = 0; i < tw.size() && isfit; i++) {
-            tw[i] += items[s.size() - 1][i + 1];
+        for (int i = 0; i < limits_size && isfit; i++) {
+            tw[i] += items[si][i + 1];
             isfit = tw[i] <= limits[i];
         }
 
         if (!isfit) {
-            s.pop();
+            si--;
             continue;
         }
 
-        value += items[s.size() - 1][0];
-        weights = tw;
+        value += items[si][0];
+        memcpy(weights, tw, sizeof(int) * limits_size);
 
-        for (size_t i = s.size(); i < items.size(); i++) s.push(0);
+        for (si++; si < items_size; si++) stack[si] = 0;
+        si--;
 
         if (value >= max_value) {
             max_value = value;
-            max_stack = s;
+            memcpy(max_stack, stack, items_size * sizeof(bool));
+            print_console(si_min, max_value, items_size);
         }
     }
 
+    for (size_t i = 0; i < items.size(); i++) items[i].push_back(max_stack[i]);
+
+    std::sort(items.begin(), items.end(), sortf);
+    for (int i = 0; i < items_size; i++) max_stack[i] = items[i].back();
+
     return max_value;
+}
+
+bool sortf(vector<int> v1, vector<int> v2) {
+    return v1[v1.size() - 2] < v2[v2.size() - 2];
+}
+
+void handler(int num) {
+    std::cout << "Saving current results...\n";
+    terminate = true;
+}
+
+void print_console(int stage, int max, int max_stage) {
+
+    #if unix || __unix || __unix__
+    system("clear");
+    #elif _WIN32 || _WIN64
+    system("cls");
+    #endif
+    
+    std::cout << "Current Stage: " << max_stage - stage << "/" << max_stage << std::endl;
+    std::cout << "Current Maximum Value: " << max << std::endl;
+    std::cout << "Pressing CTRL+C will save current results." << std::endl;
+
+    return;
 }
